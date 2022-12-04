@@ -23,10 +23,6 @@ variable "aws_forwarder_count" {
   default = 2
 }
 
-variable "aws_soar_count" {
-  default = 2
-}
-
 variable "aws_region" {
   description = "AWS region to launch servers."
   default     = "us-east-1"
