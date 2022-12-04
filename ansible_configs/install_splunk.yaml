@@ -1,0 +1,128 @@
+---
+- hosts: tag_App_Splunk
+  gather_facts: True
+  user: ec2-user
+  become: yes
+  become_method: sudo
+  vars:
+    password: admin123
+  tasks:
+    - name: Check if python is installed
+      raw: test -e /usr/bin/python || (yum -y update && yum install -y python-simplejson)
+    - name: Creates directory
+      file:
+        path: /home/ec2-user/downloads/
+        state: directory
+    - name: Download Splunk package
+      get_url:
+        url: https://download.splunk.com/products/splunk/releases/8.1.0/linux/splunk-8.1.0-f57c09e87251-Linux-x86_64.tgz
+        dest: /home/ec2-user/downloads/
+    - name: Ensure group "splunk" exists
+      group:
+        name: splunk
+        state: present
+    - name: Add the user 'splunk' to group 'splunk'
+      user:
+        name: splunk
+        password: "{{ password | password_hash('sha512') }}"
+        groups: splunk
+    - name: Extract Splunk package
+      unarchive:
+        src: /home/ec2-user/downloads/splunk-8.1.0-f57c09e87251-Linux-x86_64.tgz
+        dest: /opt/
+        remote_src: yes
+        group: splunk
+        owner: splunk
+    - name: Start Splunk and accept license
+      tags:
+        - install
+      shell: /opt/splunk/bin/splunk start --accept-license --no-prompt --answer-yes
+    - name: Enable init script
+      shell: /opt/splunk/bin/splunk enable boot-start
+    - name: Create user
+      copy:
+        dest: /opt/splunk/etc/system/local/user-seed.conf
+        content: |
+          [user_info]
+          USERNAME = admin
+          PASSWORD = admin123
+        group: splunk
+        owner: splunk
+      tags:
+        - create_user
+    - name: Change diskUsage parameter
+      copy:
+        dest: /opt/splunk/etc/system/local/server.conf
+        content: |
+          [diskUsage]
+          minFreeSpace = 5
+      tags:
+        - change_diskUsage
+    - name: Restart Splunk
+      shell: /opt/splunk/bin/splunk restart
+      tags:
+        - restart_splunk
+
+- hosts: tag_App_Forwarder
+  gather_facts: True
+  user: ec2-user
+  become: yes
+  become_method: sudo
+  vars:
+    password: admin123
+  tasks:
+    - name: Check if python is installed
+      raw: test -e /usr/bin/python || (yum -y update && yum install -y python-simplejson)
+    - name: Creates directory
+      file:
+        path: /home/ec2-user/downloads/
+        state: directory
+    - name: Download Splunk package
+      get_url:
+        url: https://download.splunk.com/products/universalforwarder/releases/9.0.2/linux/splunkforwarder-9.0.2-17e00c557dc1-Linux-x86_64.tgz
+        dest: /home/ec2-user/downloads/
+    - name: Ensure group "splunk" exists
+      group:
+        name: splunk
+        state: present
+    - name: Add the user 'splunk' to group 'splunk'
+      user:
+        name: splunk
+        password: "{{ password | password_hash('sha512') }}"
+        groups: splunk
+    - name: Extract Splunk package
+      unarchive:
+        src: /home/ec2-user/downloads/splunkforwarder-9.0.2-17e00c557dc1-Linux-x86_64.tgz
+        dest: /opt/
+        remote_src: yes
+        group: splunk
+        owner: splunk
+    - name: Start Splunk and accept license
+      tags:
+        - install
+      shell: /opt/splunkforwarder/bin/splunk start --accept-license --no-prompt --answer-yes
+    - name: Enable init script
+      shell: /opt/splunkforwarder/bin/splunk enable boot-start
+    - name: Create user
+      copy:
+        dest: /opt/splunkforwarder/etc/system/local/user-seed.conf
+        content: |
+          [user_info]
+          USERNAME = admin
+          PASSWORD = admin123
+        group: splunk
+        owner: splunk
+      tags:
+        - create_user
+    - name: Change diskUsage parameter
+      copy:
+        dest: /opt/splunkforwarder/etc/system/local/server.conf
+        content: |
+          [diskUsage]
+          minFreeSpace = 5
+      tags:
+        - change_diskUsage
+    - name: Restart Splunk
+      shell: /opt/splunkforwarder/bin/splunk restart
+      tags:
+        - restart_splunk
