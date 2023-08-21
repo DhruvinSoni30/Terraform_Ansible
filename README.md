@@ -1,4 +1,4 @@
-# A complete guid to setup Splunk Clustering using Ansible & Terraform!
+# A complete guide to setup the infrastructure using terraform & configure it using Ansible! 
 
 
 ### What is Terraform?
